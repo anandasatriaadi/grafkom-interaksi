@@ -45,7 +45,7 @@
     
     // Create the Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x262626);
+    scene.background = new THREE.Color(0x262F3A);
 
     
     // Create and locate the camera       
@@ -53,19 +53,35 @@
     camera.position.x = 10;
     camera.position.z = 10;
     
+
     // Add Lights to the scene
     let lights = []
     
+
     // lights.push( new THREE.DirectionalLight(0xFFFFFF, 1));
     // lights[lights.length-1].position.set(0, 12, 0);
-    lights.push( new THREE.PointLight(0xFFFFFF, 1));
-    lights[lights.length-1].position.set(0, 100, 0);
-    lights.push( new THREE.PointLight(0xFFFFFF, 0.25));
+    lights.push( new THREE.PointLight(0xFFFFFF, 0.5));
+    lights[lights.length-1].position.set(100, 100, 100);
+    lights.push( new THREE.PointLight(0x8888FF, 0.5));
+    lights[lights.length-1].position.set(-100, 100, 100);
+    lights.push( new THREE.PointLight(0x8888FF, 0.5));
+    lights[lights.length-1].position.set(100, 100, -100);
+    lights.push( new THREE.PointLight(0x8888FF, 0.5));
+    lights[lights.length-1].position.set(-100, 100, -100);
+    lights.push( new THREE.PointLight(0x8888FF, 0.5));
+    lights[lights.length-1].position.set(100, -100, 100);
+    lights.push( new THREE.PointLight(0x8888FF, 0.5));
+    lights[lights.length-1].position.set(100, -100, -100);
+    lights.push( new THREE.PointLight(0x8888FF, 0.5));
+    lights[lights.length-1].position.set(-100, -100, 100);
+    lights.push( new THREE.PointLight(0xFFFFFF, 0.5));
     lights[lights.length-1].position.set(-100, -100, -100);
+
     lights.push( new THREE.AmbientLight(0x555555, 1));
     
     scene.add(...lights); 
     
+
     // Create the Renderer
     let canvas = document.querySelector('#myCanvas');
     renderer = new THREE.WebGLRenderer({canvas, antialias: true});   
@@ -74,27 +90,29 @@
     
     
     //Initiate Variables
-    const MAX_BALL_COUNT = 1000
+    const MAX_BALL_COUNT = 128
     const SQRT_OF_BALL = Math.ceil(Math.pow(MAX_BALL_COUNT, 1/3));
-    controls.target.set(0, Math.floor(SQRT_OF_BALL/2), 0);
+    controls.target.set(0, Math.floor((SQRT_OF_BALL + 2)/2), 0);
     controls.update();
     let objects = [];
     let posLists = {}
     let red, green, blue;
     let xLoc = 0, yLoc = 0, zLoc = 0;
-    let curTimer = 10;
-    
-    function addBall() {
-        red = Math.floor(Math.random() * 2) * 128 + 64;
-        green = Math.floor(Math.random() * 2) * 128 + 64;
-        blue = Math.floor(Math.random() * 2) * 128 + 64;
+    let curTimer = 1000;
+
+    function addBall(odd) {
+        if(odd) {
+            red = Math.floor(Math.random() * 2) * 128 + 128;
+            green = Math.floor(Math.random() * 2) * 128 + 128;
+            blue = Math.floor(Math.random() * 2) * 128 + 96;
+        }
         
         if(objects.length < MAX_BALL_COUNT) {
             //Generates unoccupied space
             do {
-                xLoc = (Math.floor(Math.random() * SQRT_OF_BALL) - Math.floor(SQRT_OF_BALL/2)) * 1.5;
-                yLoc = Math.floor(Math.random() * SQRT_OF_BALL) * 1.5;
-                zLoc = (Math.floor(Math.random() * SQRT_OF_BALL) - Math.floor(SQRT_OF_BALL/2)) * 1.5;
+                xLoc = (Math.floor(Math.random() * (SQRT_OF_BALL + 2)) - Math.floor((SQRT_OF_BALL + 2)/2)) * 1.5;
+                yLoc = Math.floor(Math.random() * (SQRT_OF_BALL + 2)) * 1.5;
+                zLoc = (Math.floor(Math.random() * (SQRT_OF_BALL + 2)) - Math.floor((SQRT_OF_BALL + 2)/2)) * 1.5;
             } while (posLists[`${xLoc}${yLoc}${zLoc}`] != undefined);
             posLists[`${xLoc}${yLoc}${zLoc}`] = 1;
             xLoc += Math.random()
@@ -111,12 +129,15 @@
             objects[objects.length-1].position.set(xLoc, yLoc, zLoc);
             
             curTimer = curTimer / 10 * 9.5;
-            setTimeout(addBall, curTimer);
+            if(odd)
+                setTimeout(addBall, curTimer, 0);
+            else
+                setTimeout(addBall, curTimer, 1);
         }
         
     }
     
-    addBall();
+    addBall(1);
 
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -130,40 +151,53 @@
     window.addEventListener( 'click', mouseClick, false );
     
     let score = 0;
-    let selectedObj;
+    let firstObject;
     let start = new Date().getTime();
     let clock = new THREE.Clock();
     let mainLoop = function() {
         // Calculate Objects Intersecting the Picking Ray
         const intersects = raycaster.intersectObjects(scene.children, false);
         if(intersects.length > 0) {
-            if(selectedObj != null && selectedObj != intersects[0].object) {
-                if(selectedObj.material.color.getHex() == intersects[0].object.material.color.getHex()) {
+            if(firstObject != null && firstObject != intersects[0].object) {
+                if(firstObject.material.color.getHex() == intersects[0].object.material.color.getHex()) {
                     if(new Date().getTime() - start > 250) {
                         start = new Date().getTime();
 
-                        scene.remove(selectedObj)
+                        scene.remove(firstObject)
                         scene.remove(intersects[0].object)
 
-                        selectedObj = null;
+                        firstObject = null;
     
                         score += 10;
                         document.querySelector("#score").innerHTML = `Score: ${score}`;
                     }
                 }
             }
-            if(selectedObj != intersects[0].object) {
-                if(selectedObj) {
-                    selectedObj.scale.set(1, 1, 1);
+            if(firstObject != intersects[0].object) {
+                if(firstObject) {
+                    firstObject.scale.set(1, 1, 1);
                 }
                 
-                selectedObj = intersects[0].object;
-                selectedObj.scale.set(1.5, 1.5, 1.5);
+                firstObject = intersects[0].object;
             }
         } else {
-            if(selectedObj) {
-                selectedObj.scale.set(1, 1, 1);
-                selectedObj = null;
+            if(firstObject) {
+                firstObject.scale.set(1, 1, 1);
+                firstObject = null;
+            }
+        }
+
+        if(firstObject) {
+            let elapTime = clock.getElapsedTime()
+            let interval = 0.35
+            if(elapTime % interval > interval/4*3) {
+                firstObject.scale.set(1.125, 1.125, 1.125)
+            } else if(elapTime % interval > interval/4*2) {   
+                firstObject.scale.set(1.25, 1.25, 1.25)
+            } else if(elapTime % interval > interval/4) {   
+                firstObject.scale.set(1.125, 1.125, 1.125)
+            } else {   
+                firstObject.scale.set(1, 1, 1)
             }
         }
 
